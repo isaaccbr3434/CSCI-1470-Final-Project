@@ -3,11 +3,11 @@ from tensorflow.python.keras.layers import Dense, LSTM
 from tensorflow.python.keras.models import Sequential
 
 class LSTMModel(tf.keras.Model):
-    def __init__(self, units=50):
+    def __init__(self, embed_size=64):
         super().__init__()
-        self.units = units
-        self.lstm_layer = LSTM(units=self.units, return_sequences=True)
-        self.dense_layer = Dense(units=1)
+        self.embed_size = embed_size
+        self.lstm_layer = tf.keras.layers.LSTM(embed_size, return_sequences=True)
+        self.dense_layer = tf.keras.layers.Dense()
 
     def call(self, inputs):
         x = self.lstm_layer(inputs)
