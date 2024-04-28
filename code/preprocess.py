@@ -67,7 +67,6 @@ def prepare_training_data(window_size):
         assert(feature.shape[0] > window_size)
         assert(len(feature) == len(target))
 
-
         #------------------Split into train/test feature/label------------------
         train_length = math.ceil(len(feature) * 0.8)
 
