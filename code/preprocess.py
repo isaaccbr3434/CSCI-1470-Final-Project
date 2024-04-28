@@ -42,7 +42,7 @@ def one_time_preprocess():
     cleaned_stock_data.to_csv('cleaned_sp500_stock_data.csv')
 
 
-def prepare_training_data(window_Size):
+def prepare_training_data(window_size):
     cleaned_stock_data = pd.read_csv('cleaned_sp500_stock_data.csv')
     # print(cleaned_stock_data)
 
