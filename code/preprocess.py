@@ -102,3 +102,6 @@ def prepare_training_data(window_size):
     return X_train, Y_train, X_test, Y_test
     #X_train = (num_stock * num_windows_train, window_size, num_features)
     #For each window of num_features there should be 1 
+
+X_train, Y_train, X_test, Y_test = prepare_training_data(8)
+print(X_train.shape)
