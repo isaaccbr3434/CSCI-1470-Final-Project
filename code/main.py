@@ -1,3 +1,4 @@
+from preprocess import prepare_training_data
 def parse_args():
     None
 

@@ -27,3 +27,4 @@ class LSTMModel(tf.keras.Model):
     def evaluate_model(self, X_test, y_test):
         loss = self.evaluate(X_test, y_test, verbose=0)
         return loss
+    

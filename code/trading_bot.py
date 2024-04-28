@@ -1,5 +1,5 @@
 import model as model
-from preprocess import preprocess
+from preprocess import *
 import logging 
 class TradingStrategy:
     def __init__(self):
