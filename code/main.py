@@ -6,7 +6,7 @@ def parse_args():
 
 def main(args):
     #---------------------------- Hyper Parameter ------------------------------
-    window_size = 10 #MUST BE LESS THAN 
+    window_size = 30 #MUST BE LESS THAN 
     #---------------------------------------------------------------------------
 
     X0, Y0, X1, Y1 = prepare_training_data(window_size)

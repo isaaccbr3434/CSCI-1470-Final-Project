@@ -10,7 +10,7 @@ def one_time_preprocess():
     #Only needs to be ran once! 
 
     #------------------------- Independent Variables ---------------------------
-    start_date = '2023-11-01'
+    start_date = '2022-03-01'
     end_date = '2024-03-01'
     #---------------------------------------------------------------------------
 
@@ -92,7 +92,6 @@ def prepare_training_data(window_size):
             X_test.append(test_features[i:i+window_size])
             Y_test.append(test_labels[i+window_size-1])
 
-
     X_train = np.array(X_train)
     Y_train = np.array(Y_train)
     X_test = np.array(X_test)
@@ -102,5 +101,6 @@ def prepare_training_data(window_size):
     #X_train = (num_stock * num_windows_train, window_size, num_features)
     #For each window of num_features there should be 1 
 
-X_train, Y_train, X_test, Y_test = prepare_training_data(8)
-print(X_train.shape)
+# one_time_preprocess()
+# X_train, Y_train, X_test, Y_test = prepare_training_data(8)
+# print(X_train.shape)
