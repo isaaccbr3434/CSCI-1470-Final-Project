@@ -36,22 +36,22 @@ class TradingBot:
         return logger
 
     def run(self):
-            try:
-                data = self.data_handler.load_data()
-                processed_data = self.data_handler.preprocess_data(data)
-                train_data, test_data = self.data_handler.split_data(processed_data)
-                X_train, y_train = self.data_handler.create_sequences(train_data)
-                X_test, y_test = self.data_handler.create_sequences(test_data)
+        try:
+            data = self.data_handler.load_data()
+            processed_data = self.data_handler.preprocess_data(data)
+            train_data, test_data = self.data_handler.split_data(processed_data)
+            X_train, y_train = self.data_handler.create_sequences(train_data)
+            X_test, y_test = self.data_handler.create_sequences(test_data)
 
-                self.model.build_model()
-                self.model.train_model(X_train, y_train, X_test, y_test)
-                self.model.evaluate_model(X_test, y_test)
+            self.model.build_model()
+            self.model.train_model(X_train, y_train, X_test, y_test)
+            self.model.evaluate_model(X_test, y_test)
 
-                predictions = self.model.predict(X_test)
-                signals = self.strategy.generate_signals(predictions)
-                self.backtester.backtest_strategy(signals, test_data)
+            predictions = self.model.predict(X_test)
+            signals = self.strategy.generate_signals(predictions)
+            self.backtester.backtest_strategy(signals, test_data)
 
-                self.logger.info("Trading bot run completed successfully.")
+            self.logger.info("Trading bot run completed successfully.")
 
-            except Exception as e:
-                self.logger.error(f"Error occurred: {str(e)}")
+        except Exception as e:
+            self.logger.error(f"Error occurred: {str(e)}")

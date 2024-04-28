@@ -4,6 +4,7 @@ from datetime import datetime
 
 url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
 sp500_table = pd.read_html(url)[0]
+# print(sp500_table)
 ticker_symbols = sp500_table['Symbol'].tolist()
 
 start_date = '2023-11-01'
@@ -20,6 +21,7 @@ for symbol in ticker_symbols:
         print(f"Failed to fetch data for {symbol}: {e}")
 
 all_stock_data = pd.concat(all_stock_data)
+# print(type(all_stock_data))
 
 #Cleaning up the data by removing stocks with insufficient data
 missing_data_counts = all_stock_data.isnull().sum(axis=0)

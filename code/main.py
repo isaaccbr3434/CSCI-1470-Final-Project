@@ -1,3 +1,5 @@
+def parse_args():
+    None
 
 def main(args):
     None
