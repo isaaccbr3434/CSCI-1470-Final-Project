@@ -10,14 +10,15 @@ def one_time_preprocess():
     #Only needs to be ran once! 
 
     #------------------------- Independent Variables ---------------------------
-    start_date = '2022-03-01'
+    start_date = '2014-03-01'
     end_date = '2024-03-01'
     #---------------------------------------------------------------------------
 
     url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
     sp500_table = pd.read_html(url)[0]
     # print(sp500_table)
-    ticker_symbols = sp500_table['Symbol'].tolist()
+    # ticker_symbols = sp500_table['Symbol'].tolist()
+    ticker_symbols = ['GOOGL']
 
     all_stock_data = []
 
@@ -49,7 +50,7 @@ def prepare_training_data(window_size):
     #create a dictionary that is Symbol (str) -> Data across time (data frame)
     stock_data_dict = dict()
     for symbol, data in cleaned_stock_data.groupby('Symbol'):
-        stock_data_dict[symbol] = data.drop(columns=['Symbol', 'Date'])
+        stock_data_dict[symbol] = data.drop(columns=['Date', 'Symbol'])
     
     # Populate training & testing features + labels 
     X_train = []
@@ -57,40 +58,44 @@ def prepare_training_data(window_size):
     X_test = []
     Y_test = []
 
-    for symbol, data in stock_data_dict.items():
+    #---------------------------Run on 1 stock ---------------------------------
+    symbol = 'GOOGL'
+    data = stock_data_dict[symbol]
 
-        #-------------Create all of the features + labels necessary-------------
-        feature = np.array(data.values)[:-1] #This is (days, features)
-        # Binary Task, where 1 if greater the next day 0 if not
-        # Last date not included since can't make decision
-        target = np.where(data['Close'].shift(-1) > data['Close'], 1, 0)[:-1] #Bn
-        assert(feature.shape[0] > window_size)
-        assert(len(feature) == len(target))
+    # for symbol, data in stock_data_dict.items():
 
-        #------------------Split into train/test feature/label------------------
-        train_length = math.ceil(len(feature) * 0.8)
+    #-------------Create all of the features + labels necessary-------------
+    feature = np.array(data.values)[:-1] #This is (days, features)
+    # Binary Task, where 1 if greater the next day 0 if not
+    # Last date not included since can't make decision
+    target = np.where(data['Close'].shift(-1) > data['Close'], 1, 0)[:-1] #Bn
+    assert(feature.shape[0] > window_size)
+    assert(len(feature) == len(target))
 
-        train_features = feature[:train_length]
-        train_labels = target[:train_length]
-        test_features = feature[train_length:]
-        test_labels = target[train_length:]
+    #------------------Split into train/test feature/label------------------
+    train_length = math.ceil(len(feature) * 0.8)
 
-        # -------------Need to scale the data to be betwene 0 and 1-------------
-        scaler = MinMaxScaler()
-        # Fit the scaler on the training data and transform the training data
-        train_features = scaler.fit_transform(train_features)
-        test_features = scaler.transform(test_features)
+    train_features = feature[:train_length]
+    train_labels = target[:train_length]
+    test_features = feature[train_length:]
+    test_labels = target[train_length:]
 
-        #----------create a series of windows for training and testing----------
-        num_windows_train = len(train_features) + 1 - window_size
-        for i in range(num_windows_train):
-            X_train.append(train_features[i:i+window_size])
-            Y_train.append(train_labels[i+window_size-1])
+    # -------------Need to scale the data to be betwene 0 and 1-------------
+    scaler = MinMaxScaler()
+    # Fit the scaler on the training data and transform the training data
+    train_features = scaler.fit_transform(train_features)
+    test_features = scaler.transform(test_features)
 
-        num_windows_test = len(test_features) + 1 - window_size
-        for i in range(num_windows_test):
-            X_test.append(test_features[i:i+window_size])
-            Y_test.append(test_labels[i+window_size-1])
+    #----------create a series of windows for training and testing----------
+    num_windows_train = len(train_features) + 1 - window_size
+    for i in range(num_windows_train):
+        X_train.append(train_features[i:i+window_size])
+        Y_train.append(train_labels[i+window_size-1])
+
+    num_windows_test = len(test_features) + 1 - window_size
+    for i in range(num_windows_test):
+        X_test.append(test_features[i:i+window_size])
+        Y_test.append(test_labels[i+window_size-1])
 
     X_train = np.array(X_train)
     Y_train = np.array(Y_train)
@@ -102,5 +107,5 @@ def prepare_training_data(window_size):
     #For each window of num_features there should be 1 
 
 # one_time_preprocess()
-# X_train, Y_train, X_test, Y_test = prepare_training_data(8)
-# print(X_train.shape)
+X_train, Y_train, X_test, Y_test = prepare_training_data(8)
+print(X_train.shape)
