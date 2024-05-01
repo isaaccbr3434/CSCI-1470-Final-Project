@@ -4,15 +4,18 @@ from tensorflow.python.keras.layers.recurrent import LSTM
 from tensorflow.python.keras.models import Sequential
 
 class LSTMModel(tf.keras.Model):
-    def __init__(self, units=50):
+    def __init__(self, window_size, units=50):
         super().__init__()
+        self.window_size = window_size
         self.units = units
-        self.lstm_layer = LSTM(units=self.units, return_sequences=True)
+        self.lstm_layer = LSTM(units=self.units, return_sequences=True, input_shape = (window_size, 1))
+        self.lstm_layer2 = LSTM(units = self.units, return_sequences=False)
         self.dense_1 = Dense(units=100, activation = 'relu')
         self.dense_final = Dense(units=1, activation = 'sigmoid') #Needs sigmoid for binary
 
     def call(self, inputs):
         x = self.lstm_layer(inputs)
+        x = self.lstm_layer2(inputs)
         x = tf.keras.layers.Flatten()(x) 
         x = self.dense_1(x)
         output = self.dense_final(x)
@@ -23,7 +26,6 @@ class LSTMModel(tf.keras.Model):
         self.compile(optimizer=optimizer, loss=loss, metrics = metrics)
 
     def train_model(self, X_train, y_train, X_test, y_test, epochs=10, batch_size=32):
-        self.compile_model()
         history = self.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_test, y_test), verbose=1)
         return history
 

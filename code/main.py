@@ -1,25 +1,26 @@
-from preprocess import prepare_training_data
+from preprocess2 import prepare_training_data
 from model import LSTMModel
+
 
 def parse_args():
     None
 
 def main(args):
     #---------------------------- Hyper Parameter ------------------------------
-    window_size = 30 #MUST BE LESS THAN 
+    window_size = 60 #MUST BE LESS THAN 
     #---------------------------------------------------------------------------
-
-    X0, Y0, X1, Y1 = prepare_training_data(window_size)
 
     # Prepare training and testing data
     X_train, y_train, X_test, y_test = prepare_training_data(window_size)
 
+    print(X_train.shape)
+
     # Instantiate LSTMModel
-    model = LSTMModel()
+    model = LSTMModel(window_size)
     # Compile the model
-    model.compile_model(learning_rate = 0.001)
+    model.compile_model(learning_rate = 0.01)
     # Train the model
-    history = model.train_model(X_train, y_train, X_test, y_test)
+    history = model.train_model(X_train, y_train, X_test, y_test, epochs=10)
     # Evaluate the model
     loss = model.evaluate_model(X_test, y_test)
 
