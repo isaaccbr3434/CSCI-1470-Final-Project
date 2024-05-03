@@ -11,10 +11,10 @@ end_date = '2020-02-01'
 
 omx30_tickers = ['HM-B.ST', 'ERIC-B.ST', 'SEB-A.ST', 'SWED-A.ST', 'VOLV-B.ST', 
     'TELIA.ST', 'SHB-A.ST', 'ATCO-A.ST', 'SKA-B.ST', 'INVE-B.ST', 
-    'ELUX-B.ST', 'ASSA-B.ST', 'SCA-B.ST', 'INDU-C.ST', 
-    'AZN.ST', 'ATCO-B.ST', 'GETI-B.ST', 'KINV-B.ST', 'HEXA-B.ST', 
-    'ALIV-SDB.ST', 'SKF-B.ST', 'LATO-B.ST', 'SAND.ST', 'INVE-A.ST', 
-    'MTG-B.ST', 'FING-B.ST']
+    'ELUX-B.ST', 'ASSA-B.ST', 'SCA-B.ST', 'INDU-C.ST', 'AZN.ST', 
+    'ATCO-B.ST', 'GETI-B.ST', 'KINV-B.ST', 'HEXA-B.ST', 'ALIV-SDB.ST', 
+    'SKF-B.ST', 'LATO-B.ST', 'SAND.ST', 'INVE-A.ST', 'MTG-B.ST', 
+    'FING-B.ST']
 
 def one_time_preprocess():
     #Only needs to be ran once! 
@@ -176,91 +176,84 @@ def prepare_data1():
 
 def prepare_data():
     cleaned_omx = pd.read_csv('omx_30_data.csv')
+    cleaned_omx = cleaned_omx.drop([0, 1, 2]) #Drop first 3 days to make it 4500 rows
+    print(cleaned_omx)
 
     #Pg. 6 Constants
-    sequence_length = 240
-    rolling_window = 30
-
-    train_length = 750
-    validation_length = 270
-    test_length = 270
+    SEQUENCE_LENGTH = 240
+    ROLLING_WINDOW = 30
+    TRAIN_LENGTH = 750
+    VALIDATION_LENGTH = 270
+    TEST_LENGTH = 270 #Never used
 
     # Initialize lists to store data
     x_train, y_train = [], []
     x_val, y_val = [], []
     x_test, y_test = [], []
 
-    cleaned_omx = cleaned_omx.drop([0, 1, 2]) #Drop first 3 days to make it 4500 rows
-    print(cleaned_omx)
-
-    # Kevin Edits: Currently overcounts training data. There should be (4500-1290)/30 = 107 training blocks
-    # (0, 3960) is used for training with 270 sized windows (4500-540)
-    # (750, 4230) is used for validation
-    # (1020, 4500) used for testing, with the last 30 technically not included for each.
-
     for ticker in omx30_tickers:
         if ticker not in cleaned_omx.columns:
             print(f"Ticker {ticker} not found in dataset. Skipping...")
             continue
-        
+
+        # Select the data for the current ticker
         ticker_data = cleaned_omx[ticker]
         targets = cleaned_omx[f"{ticker}_Target"]
 
-        for i in range(0, 3210+1, 30):
-            # print(i)
-            # -----------------------Training processing-------------------------
-            train_sequence = ticker_data[i:i+train_length]
-            train_targets = targets[i:i+train_length + 1].values
-            for j in range(0, len(train_sequence) - sequence_length + 1, rolling_window):
-                sequence = train_sequence.iloc[j:j+240]
-                target = train_targets[j+240]
+        for i in range(0, 3210 + 1, ROLLING_WINDOW):
+            # -----------------------Training processing------------------------
+            train_end = i + TRAIN_LENGTH
+            train_data = ticker_data[i : train_end]
+            train_targets = targets[i : train_end + 1].values
 
-                x_train.append(sequence.values)
-                y_train.append(target)
+            for j in range(0, len(train_data) - SEQUENCE_LENGTH + 1, ROLLING_WINDOW):
+                x_train.append(train_data.iloc[j:j+240].values)
+                y_train.append(train_targets[j+240])
 
             # ----------------------Validation processing-----------------------
-            val_sequence = ticker_data[i + train_length : i + train_length + validation_length]
-            val_targets = targets[i+train_length : i+train_length+validation_length + 1].values
-            for j in range(0, len(val_sequence) - sequence_length + 1, rolling_window):
-                sequence = val_sequence.iloc[j:j+240]
-                target = val_targets[j+240]
+            val_start = train_end
+            val_end = val_start + VALIDATION_LENGTH
+            val_data = ticker_data[val_start : val_end]
+            val_targets = targets[val_start : val_end + 1].values
 
-                x_val.append(sequence.values)
-                y_val.append(target)
+            for j in range(0, len(val_data) - SEQUENCE_LENGTH + 1, ROLLING_WINDOW):
+                x_val.append(val_data.iloc[j:j+240].values)
+                y_val.append(val_targets[j+240])
 
             # -----------------------Testing processing-------------------------
-            test_sequence = ticker_data[i + train_length + validation_length : i + train_length + validation_length + sequence_length]
-            test_target = targets[i+train_length+validation_length+sequence_length]
+            test_start = val_end
+            test_end = test_start + SEQUENCE_LENGTH
             
-            x_test.append(test_sequence.values)
-            y_test.append(test_target)
+            x_test.append(ticker_data[test_start : test_end].values)
+            y_test.append(targets[test_end])
 
 
     # Convert lists to arrays
-    x_train = np.array(x_train).reshape(-1, sequence_length, 1)
+    x_train = np.array(x_train).reshape(-1, SEQUENCE_LENGTH, 1)
     y_train = np.array(y_train)
-    x_val = np.array(x_val).reshape(-1, sequence_length, 1)
+    x_val = np.array(x_val).reshape(-1, SEQUENCE_LENGTH, 1)
     y_val = np.array(y_val)
-    x_test = np.array(x_test).reshape(-1, sequence_length, 1)
+    x_test = np.array(x_test).reshape(-1, SEQUENCE_LENGTH, 1)
     y_test = np.array(y_test)
 
     return x_train, y_train, x_val, y_val, x_test, y_test
 
+
 # one_time_preprocess()
-x_train, y_train, x_val, y_val, x_test, y_test = prepare_data1()
+# x_train, y_train, x_val, y_val, x_test, y_test = prepare_data()
 
 
-print("x_train shape:", x_train.shape)
-print("y_train shape:", y_train.shape)
-print("x_val shape:", x_val.shape)
-print("y_val shape:", y_val.shape)
-print("x_test shape:", x_test.shape)
-print("y_test shape:", y_test.shape)
+# print("x_train shape:", x_train.shape)
+# print("y_train shape:", y_train.shape)
+# print("x_val shape:", x_val.shape)
+# print("y_val shape:", y_val.shape)
+# print("x_test shape:", x_test.shape)
+# print("y_test shape:", y_test.shape)
 
 
-print("x_train len:", len(x_train))
-print("y_train len:", len(y_train))
-print("x_val len:", len(x_val))
-print("y_val len:", len(y_val))
-print("x_test len:", len(x_test))
-print("y_test len:", len(y_test))
+# print("x_train len:", len(x_train))
+# print("y_train len:", len(y_train))
+# print("x_val len:", len(x_val))
+# print("y_val len:", len(y_val))
+# print("x_test len:", len(x_test))
+# print("y_test len:", len(y_test))

@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from scipy import stats
-from preprocess_2 import prepare_data
+from preprocess import prepare_data
 
 class LSTM(tf.keras.Model):
     def __init__(self, hidden_size=3, weight_initializer="glorot_uniform"):
@@ -40,6 +40,7 @@ def main(args):
                            "ones", "glorot_normal", "glorot_uniform", "identity",
                            "orthogonal", "constant", "variance_scaling"] # FIX CONSTANT.
     models = []
+
     for weight in weight_initializers:
         model = LSTM(weight)
         model.compile(
@@ -73,3 +74,4 @@ def parse_args():
 
 if __name__ == '__main__':
     main(parse_args())
+    
