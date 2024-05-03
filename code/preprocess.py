@@ -73,7 +73,7 @@ def one_time_preprocess():
     omx30_df.to_csv('omx_30_data.csv')
 
 
-def prepare_data():
+def prepare_data1():
     
     cleaned_omx = pd.read_csv('omx_30_data.csv')
 
@@ -174,8 +174,80 @@ def prepare_data():
 
     return x_train, y_train, x_val, y_val, x_test, y_test
 
+def prepare_data():
+    cleaned_omx = pd.read_csv('omx_30_data.csv')
+
+    #Pg. 6 Constants
+    sequence_length = 240
+    rolling_window = 30
+
+    train_length = 750
+    validation_length = 270
+    test_length = 270
+
+    # Initialize lists to store data
+    x_train, y_train = [], []
+    x_val, y_val = [], []
+    x_test, y_test = [], []
+
+    cleaned_omx = cleaned_omx.drop([0, 1, 2]) #Drop first 3 days to make it 4500 rows
+    print(cleaned_omx)
+
+    # Kevin Edits: Currently overcounts training data. There should be (4500-1290)/30 = 107 training blocks
+    # (0, 3960) is used for training with 270 sized windows (4500-540)
+    # (750, 4230) is used for validation
+    # (1020, 4500) used for testing, with the last 30 technically not included for each.
+
+    for ticker in omx30_tickers:
+        if ticker not in cleaned_omx.columns:
+            print(f"Ticker {ticker} not found in dataset. Skipping...")
+            continue
+        
+        ticker_data = cleaned_omx[ticker]
+        targets = cleaned_omx[f"{ticker}_Target"]
+
+        for i in range(0, 3210+1, 30):
+            # print(i)
+            # -----------------------Training processing-------------------------
+            train_sequence = ticker_data[i:i+train_length]
+            train_targets = targets[i:i+train_length + 1].values
+            for j in range(0, len(train_sequence) - sequence_length + 1, rolling_window):
+                sequence = train_sequence.iloc[j:j+240]
+                target = train_targets[j+240]
+
+                x_train.append(sequence.values)
+                y_train.append(target)
+
+            # ----------------------Validation processing-----------------------
+            val_sequence = ticker_data[i + train_length : i + train_length + validation_length]
+            val_targets = targets[i+train_length : i+train_length+validation_length + 1].values
+            for j in range(0, len(val_sequence) - sequence_length + 1, rolling_window):
+                sequence = val_sequence.iloc[j:j+240]
+                target = val_targets[j+240]
+
+                x_val.append(sequence.values)
+                y_val.append(target)
+
+            # -----------------------Testing processing-------------------------
+            test_sequence = ticker_data[i + train_length + validation_length : i + train_length + validation_length + sequence_length]
+            test_target = targets[i+train_length+validation_length+sequence_length]
+            
+            x_test.append(test_sequence.values)
+            y_test.append(test_target)
+
+
+    # Convert lists to arrays
+    x_train = np.array(x_train).reshape(-1, sequence_length, 1)
+    y_train = np.array(y_train)
+    x_val = np.array(x_val).reshape(-1, sequence_length, 1)
+    y_val = np.array(y_val)
+    x_test = np.array(x_test).reshape(-1, sequence_length, 1)
+    y_test = np.array(y_test)
+
+    return x_train, y_train, x_val, y_val, x_test, y_test
+
 # one_time_preprocess()
-x_train, y_train, x_val, y_val, x_test, y_test = prepare_data()
+x_train, y_train, x_val, y_val, x_test, y_test = prepare_data1()
 
 
 print("x_train shape:", x_train.shape)
