@@ -177,20 +177,21 @@ def prepare_data1():
 def prepare_data():
     cleaned_omx = pd.read_csv('omx_30_data.csv')
     cleaned_omx = cleaned_omx.drop([0, 1, 2]) #Drop first 3 days to make it 4500 rows
-    print(cleaned_omx)
+    # print(cleaned_omx)
 
     #Pg. 6 Constants
     SEQUENCE_LENGTH = 240
     ROLLING_WINDOW = 30
     TRAIN_LENGTH = 750
     VALIDATION_LENGTH = 270
-    TEST_LENGTH = 270 #Never used
+    TEST_LENGTH = 270 #NEVER USED
 
     # Initialize lists to store data
     x_train, y_train = [], []
     x_val, y_val = [], []
     x_test, y_test = [], []
 
+    # For each of the (26) stocks
     for ticker in omx30_tickers:
         if ticker not in cleaned_omx.columns:
             print(f"Ticker {ticker} not found in dataset. Skipping...")
