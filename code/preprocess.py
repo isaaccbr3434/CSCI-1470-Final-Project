@@ -9,15 +9,15 @@ from sklearn.preprocessing import MinMaxScaler
 start_date = '2002-05-01'
 end_date = '2020-02-01'
 
-def one_time_preprocess():
-    #Only needs to be ran once! 
-
-    omx30_tickers = ['HM-B.ST', 'ERIC-B.ST', 'SEB-A.ST', 'SWED-A.ST', 'VOLV-B.ST', 
+omx30_tickers = ['HM-B.ST', 'ERIC-B.ST', 'SEB-A.ST', 'SWED-A.ST', 'VOLV-B.ST', 
     'TELIA.ST', 'SHB-A.ST', 'ATCO-A.ST', 'SKA-B.ST', 'INVE-B.ST', 
     'ELUX-B.ST', 'ASSA-B.ST', 'SCA-B.ST', 'INDU-C.ST', 
     'AZN.ST', 'ATCO-B.ST', 'GETI-B.ST', 'KINV-B.ST', 'HEXA-B.ST', 
     'ALIV-SDB.ST', 'SKF-B.ST', 'LATO-B.ST', 'SAND.ST', 'INVE-A.ST', 
     'MTG-B.ST', 'FING-B.ST']
+
+def one_time_preprocess():
+    #Only needs to be ran once! 
 
     print(len(omx30_tickers), " stocks included in adjusted portfolio. Read comments for details ")
     
@@ -29,12 +29,12 @@ def one_time_preprocess():
     #-------------------------In case tickers wrong---------------------------
 
     # tickers = [
-    # 'SEB-A.ST', 'ATCO-A.ST', 'ATCO-B.ST', 'INVE-B.ST', 'ESSITY-B.ST', 
-    # 'ABB.ST', 'SWED-A.ST', 'NDA-SE.ST', 'VOLV-B.ST', 'SKF-B.ST', 
-    # 'ERIC-B.ST', 'ALFA.ST', 'EVO.ST', 'BOL.ST', 'SHB-A.ST', 
-    # 'SCA-B.ST', 'SAND.ST', 'KINV-B.ST', 'NIBE-B.ST', 'AZN.ST', 
-    # 'ELUX-B.ST', 'HM-B.ST', 'ASSA-B.ST', 'ALIV-SDB.ST', 'TEL2-B.ST', 
-    # 'GETI-B.ST', 'TELIA.ST', 'HEXA-B.ST', 'SBB-B.ST', 'SINCH.ST']
+    # 'SEB-A.ST', 'ATCO-A.ST', 'ATCO-B.ST', 'INVE-B.ST', 'ABB.ST', 
+    # 'SWED-A.ST', 'NDA-SE.ST', 'VOLV-B.ST', 'SKF-B.ST', 'ERIC-B.ST', 
+    # 'ALFA.ST', 'EVO.ST', 'BOL.ST', 'SHB-A.ST', 'SCA-B.ST', 
+    # 'SAND.ST', 'KINV-B.ST', 'NIBE-B.ST', 'AZN.ST', 'ELUX-B.ST', 
+    # 'HM-B.ST', 'ASSA-B.ST', 'ALIV-SDB.ST', 'TEL2-B.ST', 'GETI-B.ST', 
+    # 'TELIA.ST', 'HEXA-B.ST', 'SBB-B.ST', 'SINCH.ST']
 
     # set1 = set(omx30_tickers)
     # set2 = set(tickers)
@@ -76,49 +76,119 @@ def one_time_preprocess():
 def prepare_data():
     
     cleaned_omx = pd.read_csv('omx_30_data.csv')
-    print(cleaned_omx)
 
-    X0 = []
-    Y0 = []
-    
-    X1 = []
-    Y1 = []
+    #Pg. 6 Constants
+    sequence_length = 240
+    rolling_window = 30
 
-    X2 = []
-    Y2 = []
-
-    # Pg 6 constants
     train_length = 750
     validation_length = 270
     test_length = 270
-    rolling_window = 30
+
+    # Initialize lists to store data
+    x_train, y_train = [], []
+    x_val, y_val = [], []
+    x_test, y_test = [], []
 
     cleaned_omx = cleaned_omx.drop([0, 1, 2]) #Drop first 3 days to make it 4500 rows
+    print(cleaned_omx)
+
     # Kevin Edits: Currently overcounts training data. There should be (4500-1290)/30 = 107 training blocks
     # (0, 3960) is used for training with 270 sized windows (4500-540)
     # (750, 4230) is used for validation
     # (1020, 4500) used for testing, with the last 30 technically not included for each.
 
-    train_last_index = len(cleaned_omx) - 270 - 270 - 240
-    for i in range(0, train_last_index, 750):
-        block = cleaned_omx.iloc[i:i+train_length]
-        for j in range(0, len(block), rolling_window):
-            X0.append(block.iloc[j:j+240])
-            X1.append(block.iloc[j+240]) #The median measurement is for the day after
+    for ticker in omx30_tickers:
+        if ticker not in cleaned_omx.columns:
+            print(f"Ticker {ticker} not found in dataset. Skipping...")
+            continue
 
-    
+        ticker_data = cleaned_omx[ticker]
+        targets = cleaned_omx[f"{ticker}_Target"]
 
-    for dataset, length in [(train_sequences, 750), (validation_sequences, 270), (test_sequences, 270)]:
-        for i in range(0, len(cleaned_omx), length):
-            block = cleaned_omx.iloc[i:i+length]
-            for j in range(0, len(block), rolling_window):
-                sequence = block.iloc[j:j+240]
-                dataset.append(sequence)
-    
-    print(len(train_sequences))
-    print(len(train_sequences[150]))
 
-    return train_sequences, validation_sequences, test_sequences
+        # -----------------------Training processing----------------------------
+        train_last_index = len(cleaned_omx) - 270 - 270 - 240
+        train_first_index = 0
+
+        i = train_first_index
+
+        while i <= train_last_index:
+            # Extract sequences of length 240
+            sequence = ticker_data[i:i+sequence_length]
+            target = targets.iloc[i+sequence_length]
+
+            x_train.append(sequence.values)
+            y_train.append(target)
+
+            i += rolling_window
+
+        # print(len(x_train))
+        # sys.exit()
+
+        # -----------------------Validation processing--------------------------
+        val_last_index = len(cleaned_omx) - 270 - 240
+        val_first_index = 750
+
+        i = val_first_index
+        while i <= val_last_index:
+            # Extract sequences of length 240
+            sequence = ticker_data[i:i+sequence_length]
+            target = targets.iloc[i+sequence_length]
+
+            x_val.append(sequence.values)
+            y_val.append(target)
+
+            i += rolling_window
+
+        # print(len(x_val))
+        # print(len(y_val))
+        # sys.exit()
+
+        # -----------------------Validation processing--------------------------
+        test_last_index = len(cleaned_omx) - 270
+        test_first_index = 750 + 270
+
+        i = test_first_index
+        while i <= val_last_index:
+            # Extract sequences of length 240
+            sequence = ticker_data[i:i+sequence_length]
+            target = targets.iloc[i+sequence_length]
+
+            x_test.append(sequence.values)
+            y_test.append(target)
+
+            i+=rolling_window
+
+        # print(len(x_test))
+        # print(len(y_test))
+        # sys.exit()
+
+    # Convert lists to arrays
+    x_train = np.array(x_train).reshape(-1, sequence_length, 1)
+    y_train = np.array(y_train)
+    x_val = np.array(x_val).reshape(-1, sequence_length, 1)
+    y_val = np.array(y_val)
+    x_test = np.array(x_test).reshape(-1, sequence_length, 1)
+    y_test = np.array(y_test)
+
+    return x_train, y_train, x_val, y_val, x_test, y_test
 
 # one_time_preprocess()
-prepare_data()
+x_train, y_train, x_val, y_val, x_test, y_test = prepare_data()
+
+
+print("x_train shape:", x_train.shape)
+print("y_train shape:", y_train.shape)
+print("x_val shape:", x_val.shape)
+print("y_val shape:", y_val.shape)
+print("x_test shape:", x_test.shape)
+print("y_test shape:", y_test.shape)
+
+
+print("x_train len:", len(x_train))
+print("y_train len:", len(y_train))
+print("x_val len:", len(x_val))
+print("y_val len:", len(y_val))
+print("x_test len:", len(x_test))
+print("y_test len:", len(y_test))
