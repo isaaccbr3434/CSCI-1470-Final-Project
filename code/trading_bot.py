@@ -1,5 +1,5 @@
 import model as model
-from data import preprocess
+import preprocess
 import logging 
 import pandas as pd
 from lumibot.brokers import Alpaca

@@ -9,7 +9,7 @@ def main(args):
     #---------------------------- Hyper Parameter ------------------------------
     window_size = 60 #MUST BE LESS THAN 
     #---------------------------------------------------------------------------
-
+    #Run once
     one_time_preprocess()
     # # Prepare training and testing data
     # X_train, y_train, X_test, y_test = prepare_training_data(window_size)
