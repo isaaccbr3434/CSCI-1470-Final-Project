@@ -3,6 +3,8 @@ import tensorflow as tf
 from scipy import stats
 from preprocess import prepare_data
 from tensorflow.keras.models import load_model
+import keras
+from keras import layers
 
 class MyLSTM(tf.keras.Model):
     def __init__(self, hidden_size=3, weight_initializer="glorot_uniform"):
@@ -26,11 +28,63 @@ class MyLSTM(tf.keras.Model):
     def call(self, inputs):
         output = self.lstm_dense(inputs)
         return output
+
+class TokenAndPositionEmbedding(layers.Layer):
+    def __init__(self, kernel_size, embed_dim):
+        super().__init__()
+        self.token_emb = layers.Conv1D(filters=1, kernel_size = kernel_size)
+        self.pos_emb = layers.Embedding(input_dim=200, output_dim=embed_dim)
+
+    def call(self, x):
+        positions = self.pos_emb(positions)
+        x = self.token_emb(x)
+        return x + positions
+
+class TransformerBlock(layers.Layer):
+    def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1):
+        super().__init__()
+        self.att = layers.MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim)
+        self.ffn = keras.Sequential(
+            [layers.Dense(ff_dim, activation="relu"), layers.Dense(embed_dim),]
+        )
+        self.layernorm1 = layers.LayerNormalization(epsilon=1e-6)
+        self.layernorm2 = layers.LayerNormalization(epsilon=1e-6)
+        self.dropout1 = layers.Dropout(rate)
+        self.dropout2 = layers.Dropout(rate)
+
+    def call(self, inputs):
+        attn_output = self.att(inputs, inputs)
+        attn_output = self.dropout1(attn_output)
+        out1 = self.layernorm1(inputs + attn_output)
+        ffn_output = self.ffn(out1)
+        ffn_output = self.dropout2(ffn_output)
+        return self.layernorm2(out1 + ffn_output)
+
+class Transformer(tf.keras.Model):
+    """
+    Vanilla Transformer with O(L^2) complexity
+    """
+    def __init__(self):
+        super().__init__()
+
+        self.layers = tf.keras.Sequential([
+            TokenAndPositionEmbedding(32, 5),
+            TransformerBlock(32, 2, 32),
+            tf.keras.layers.Dense(units = 10, activation = 'relu'),
+            tf.keras.layers.Dropout(0.1),
+            tf.keras.layers.Dense(units=1, activation='sigmoid')
+        ])
+
+
+    def call(self, inputs):
+        output = self.layers(inputs)
+        return output
+
     
 def main(args):
     # Prepare training and testing data.
     X_train, Y_train, X_val, Y_val, X_test, Y_test = prepare_data()
-    
+
     # Initialize hyperparameters from paper
     learning_rate = 0.0075
     epochs = 10
@@ -43,7 +97,7 @@ def main(args):
     
     models = []
     for index, weight in enumerate(weight_initializers):
-        model = MyLSTM(weight)
+        model = Transformer()
         model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), 
             loss='binary_crossentropy', 
@@ -66,19 +120,19 @@ def main(args):
         models.append(model)
     
     # # ------------------------ Loading saved models ----------------------------
-    # for index, weight in enumerate(weight_initializers):
-    #     model = load_model(f'models/model_{index}_{weight}')
-    #     print(f'\nModel {weight} loaded from models/model_{index}_{weight}\n')
-    #     models.append(model)
+    for index, weight in enumerate(weight_initializers):
+        model = load_model(f'models/model_{index}_{weight}')
+        print(f'\nModel {weight} loaded from models/model_{index}_{weight}\n')
+        models.append(model)
 
-    # predictions = [(model.predict(X_test, batch_size=batch_size) > 0.5).astype("int32") for model in models] #(11, 2808, 1)
-    # predictions = np.array(predictions)
-    # mode_result = stats.mode(predictions, axis=0)
-    # mode_predictions = mode_result.mode.flatten() #(2808, )
+    predictions = [(model.predict(X_test, batch_size=batch_size) > 0.5).astype("int32") for model in models] #(11, 2808, 1)
+    predictions = np.array(predictions)
+    mode_result = stats.mode(predictions, axis=0)
+    mode_predictions = mode_result.mode.flatten() #(2808, )
 
     #Get predictions from all 11 models across 2808 tests in X_tests
-    predictions = np.concatenate([model.predict(X_test, batch_size=batch_size) for model in models], axis=1) #(2808, 11)
-    mode_predictions = stats.mode(predictions, axis=1).mode.flatten() #(2808, )
+    # predictions = np.concatenate([model.predict(X_test, batch_size=batch_size) for model in models], axis=1) #(2808, 11)
+    # mode_predictions = stats.mode(predictions, axis=1).mode.flatten() #(2808, )
     
     #Replaced bce with accuracy since all are whole numbers, and measure % accuracy
     accuracy = tf.keras.metrics.BinaryAccuracy()
