@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from scipy import stats
-from preprocess import prepare_data
+from preprocess import prepare_data, prepare_data2
 from tensorflow.keras.models import load_model
 import keras
 from keras import layers
@@ -29,13 +29,38 @@ class MyLSTM(tf.keras.Model):
         output = self.lstm_dense(inputs)
         return output
 
+class MyGRU(tf.keras.Model):
+    def __init__(self, hidden_size=3, weight_initializer="glorot_uniform"):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.lstm_dense = tf.keras.Sequential([
+            tf.keras.layers.GRU(
+                units=3, #Should be able to not have to rely on hard code
+                kernel_initializer=weight_initializer,
+                dropout=0.06,
+                recurrent_dropout=0.14
+            ),
+            tf.keras.layers.Dense(
+                units=1,
+                activation='sigmoid',
+                use_bias=True,
+                bias_initializer="truncated_normal"
+            )
+        ])
+        
+    def call(self, inputs):
+        output = self.lstm_dense(inputs)
+        return output
+
 class TokenAndPositionEmbedding(layers.Layer):
     def __init__(self, kernel_size, embed_dim):
         super().__init__()
-        self.token_emb = layers.Conv1D(filters=1, kernel_size = kernel_size)
+        self.token_emb = layers.Conv1D(filters=1, kernel_size = kernel_size, activation = 'relu')
         self.pos_emb = layers.Embedding(input_dim=200, output_dim=embed_dim)
 
     def call(self, x):
+        x = tf.expand_dims(x, axis = 1)
+        positions = tf.range(0, len(x))
         positions = self.pos_emb(positions)
         x = self.token_emb(x)
         return x + positions
@@ -60,15 +85,15 @@ class TransformerBlock(layers.Layer):
         ffn_output = self.dropout2(ffn_output)
         return self.layernorm2(out1 + ffn_output)
 
-class Transformer(tf.keras.Model):
+class MyTransformer(tf.keras.Model):
     """
     Vanilla Transformer with O(L^2) complexity
     """
     def __init__(self):
         super().__init__()
 
-        self.layers = tf.keras.Sequential([
-            TokenAndPositionEmbedding(32, 5),
+        self.model_layers = tf.keras.Sequential([
+            TokenAndPositionEmbedding(32, 32),
             TransformerBlock(32, 2, 32),
             tf.keras.layers.Dense(units = 10, activation = 'relu'),
             tf.keras.layers.Dropout(0.1),
@@ -77,13 +102,18 @@ class Transformer(tf.keras.Model):
 
 
     def call(self, inputs):
-        output = self.layers(inputs)
+        print(inputs.shape)
+        output = self.model_layers(inputs)
         return output
 
     
 def main(args):
     # Prepare training and testing data.
     X_train, Y_train, X_val, Y_val, X_test, Y_test = prepare_data()
+    print(X_train.shape)
+    print(Y_train.shape)
+    print(X_val.shape)
+    print(Y_val.shape)
 
     # Initialize hyperparameters from paper
     learning_rate = 0.0075
@@ -97,7 +127,9 @@ def main(args):
     
     models = []
     for index, weight in enumerate(weight_initializers):
-        model = Transformer()
+        model = MyLSTM()
+        model = MyGRU()
+        # model = MyTransformer()
         model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), 
             loss='binary_crossentropy', 
@@ -107,7 +139,7 @@ def main(args):
             X_train, 
             Y_train, 
             epochs=epochs, 
-            batch_size=batch_size, 
+            batch_size=32, 
             validation_data=(X_val, Y_val), 
             verbose=1
         )

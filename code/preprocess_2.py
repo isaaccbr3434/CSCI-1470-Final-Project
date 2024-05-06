@@ -3,16 +3,16 @@ import yfinance as yf
 from datetime import datetime
 import numpy as np
 import math
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
 
-
-omx30_tickers = ['HM-B.ST', 'ERIC-B.ST', 'SEB-A.ST', 'SWED-A.ST', 'VOLV-B.ST', 'TELIA.ST', 'SHB-A.ST', 'ATCO-A.ST', 'SKA-B.ST',
-                   'INVE-B.ST', 'ELUX-B.ST', 'ASSA-B.ST', 'SCA-B.ST', 'LUMI-SDB.ST', 'ALFA.ST', 'INDU-C.ST', 'AZN.ST', 'ATCO-B.ST',
-                   'ESSITY-B.ST', 'GETI-B.ST', 'KINV-B.ST', 'HEXA-B.ST', 'SWMA.ST', 'ALIV-SDB.ST', 'SKF-B.ST', 'LATO-B.ST', 'SAND.ST',
-                   'INVE-A.ST', 'MTG-B.ST', 'FING-B.ST', 'ESSITY-A.ST']
-
+omx30_tickers = ['HM-B.ST', 'ERIC-B.ST', 'SEB-A.ST', 'SWED-A.ST', 'VOLV-B.ST', 
+    'TELIA.ST', 'SHB-A.ST', 'ATCO-A.ST', 'SKA-B.ST', 'INVE-B.ST', 
+    'ELUX-B.ST', 'ASSA-B.ST', 'SCA-B.ST', 'INDU-C.ST', 'AZN.ST', 
+    'ATCO-B.ST', 'GETI-B.ST', 'KINV-B.ST', 'HEXA-B.ST', 'ALIV-SDB.ST', 
+    'SKF-B.ST', 'LATO-B.ST', 'SAND.ST', 'INVE-A.ST', 'MTG-B.ST', 
+    'FING-B.ST']
 
 def one_time_preprocess():
    #Only needs to be ran once!
@@ -47,8 +47,8 @@ def one_time_preprocess():
 
 
    #This stock had no data
-   omx30_df.drop(columns=['ESSITY-A.ST'], inplace=True)
-   omx30_tickers.remove('ESSITY-A.ST')
+#    omx30_df.drop(columns=['ESSITY-A.ST'], inplace=True)
+#    omx30_tickers.remove('ESSITY-A.ST')
 
 
    for ticker in omx30_tickers:
@@ -64,6 +64,8 @@ def one_time_preprocess():
 
 def prepare_data():
    cleaned_omx = pd.read_csv('omx_30_data.csv')
+   cleaned_omx = cleaned_omx.drop([0, 1, 2]) #Drop first 3 days to make it 4500 rows
+
 
 
    sequence_length = 240
@@ -80,7 +82,6 @@ def prepare_data():
    x_val, y_val = [], []
    x_test, y_test = [], []
 
-
    for ticker in omx30_tickers:
        if ticker not in cleaned_omx.columns:
            print(f"Ticker {ticker} not found in dataset. Skipping...")
@@ -90,31 +91,45 @@ def prepare_data():
        ticker_data = cleaned_omx[ticker]
        targets = cleaned_omx[f"{ticker}_Target"]
 
+       i_train, i_val, i_test = 0, 0, 0 
+       i_indexer = 0
+        # Initialize counters
 
        i = 0
-       while i + sequence_length < len(ticker_data):
-           # Extract sequences of length 240
-           sequence = ticker_data[i:i+sequence_length]
-           target = targets.iloc[i+sequence_length]
 
+       counter = 0
 
-           if len(sequence) == sequence_length:
-               # Decide whether it's for train, validation, or test set
-               if len(x_train) < train_length:
-                   x_train.append(sequence.values)
-                   y_train.append(target)
-               elif len(x_val) < validation_length:
-                   x_val.append(sequence.values)
-                   y_val.append(target)
-               elif len(x_test) < test_length:
-                   x_test.append(sequence.values)
-                   y_test.append(target)
-              
+       while i + 1290 < len(ticker_data):
 
+            i_indexer = counter * 30
+            
+            if i_train + sequence_length < train_length:
+                sequence = ticker_data[i_indexer:i_indexer + sequence_length]
+                target = targets.iloc[i_indexer + sequence_length]
+                x_train.append(sequence.values)
+                y_train.append(target)
+                i_train += 1
 
-           i += rolling_window  # Move the window by 30 days
+            elif i_val + sequence_length < validation_length:
+                sequence = ticker_data[i_indexer:i_indexer + sequence_length]
+                target = targets.iloc[i_indexer + sequence_length]
+                x_val.append(sequence.values)
+                y_val.append(target)
+                i_train += 1
+                i_val += 1
 
+            elif i_test + sequence_length < test_length:
+                sequence = ticker_data[i_indexer:i_indexer + sequence_length]
+                target = targets.iloc[i_indexer + sequence_length]
+                x_test.append(sequence.values)
+                y_test.append(target)
+                i_test += 1
 
+            else:
+                i_train, i_val, i_test = 0, 0, 0
+                i += rolling_window 
+                counter +=1 # Initialize counters
+                    
    # Convert lists to arrays
    x_train = np.array(x_train).reshape(-1, sequence_length, 1)
    y_train = np.array(y_train)
@@ -126,26 +141,25 @@ def prepare_data():
 
    return x_train, y_train, x_val, y_val, x_test, y_test
 
+one_time_preprocess()
+
+# x_train, y_train, x_val, y_val, x_test, y_test = prepare_data()
 
 
-
-x_train, y_train, x_val, y_val, x_test, y_test = prepare_data()
-
-
-print("x_train shape:", x_train.shape)
-print("y_train shape:", y_train.shape)
-print("x_val shape:", x_val.shape)
-print("y_val shape:", y_val.shape)
-print("x_test shape:", x_test.shape)
-print("y_test shape:", y_test.shape)
+# print("x_train shape:", x_train.shape)
+# print("y_train shape:", y_train.shape)
+# print("x_val shape:", x_val.shape)
+# print("y_val shape:", y_val.shape)
+# print("x_test shape:", x_test.shape)
+# print("y_test shape:", y_test.shape)
 
 
-print("x_train len:", len(x_train))
-print("y_train len:", len(y_train))
-print("x_val len:", len(x_val))
-print("y_val len:", len(y_val))
-print("x_test len:", len(x_test))
-print("y_test len:", len(y_test))
+# print("x_train len:", len(x_train))
+# print("y_train len:", len(y_train))
+# print("x_val len:", len(x_val))
+# print("y_val len:", len(y_val))
+# print("x_test len:", len(x_test))
+# print("y_test len:", len(y_test))
 
 
 # num_samples = 5
