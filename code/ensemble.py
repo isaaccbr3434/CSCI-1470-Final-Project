@@ -10,9 +10,12 @@ class MyLSTM(tf.keras.Model):
     def __init__(self, hidden_size=3, weight_initializer="glorot_uniform"):
         super().__init__()
         self.hidden_size = hidden_size
+        if weight_initializer == "constant":
+            weight_initializer = tf.keras.initializers.Constant(0.5)
+            
         self.lstm_dense = tf.keras.Sequential([
             tf.keras.layers.LSTM(
-                units=3, #Should be able to not have to rely on hard code
+                units=3, # Should be able to not have to rely on hard code.
                 kernel_initializer=weight_initializer,
                 dropout=0.06,
                 recurrent_dropout=0.14
@@ -85,7 +88,7 @@ def main(args):
     # Prepare training and testing data.
     X_train, Y_train, X_val, Y_val, X_test, Y_test = prepare_data()
 
-    # Initialize hyperparameters from paper
+    # Initialize hyperparameters from paper.
     learning_rate = 0.0075
     epochs = 10
     batch_size = 6800
@@ -97,7 +100,7 @@ def main(args):
     
     models = []
     for index, weight in enumerate(weight_initializers):
-        model = Transformer()
+        model = MyLSTM()
         model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), 
             loss='binary_crossentropy', 
@@ -130,11 +133,11 @@ def main(args):
     mode_result = stats.mode(predictions, axis=0)
     mode_predictions = mode_result.mode.flatten() #(2808, )
 
-    #Get predictions from all 11 models across 2808 tests in X_tests
+    # Get predictions from all 11 models across 2808 tests in X_tests
     # predictions = np.concatenate([model.predict(X_test, batch_size=batch_size) for model in models], axis=1) #(2808, 11)
     # mode_predictions = stats.mode(predictions, axis=1).mode.flatten() #(2808, )
     
-    #Replaced bce with accuracy since all are whole numbers, and measure % accuracy
+    # Replaced bce with accuracy since all are whole numbers, and measure % accuracy.
     accuracy = tf.keras.metrics.BinaryAccuracy()
     accuracy.update_state(Y_test, mode_predictions)
     print("Accuracy out of 2808 tests: ", accuracy.result().numpy()) #Always 0.50035614

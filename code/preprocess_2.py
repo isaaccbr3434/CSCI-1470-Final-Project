@@ -63,7 +63,7 @@ def one_time_preprocess():
 
 
 def prepare_data():
-   cleaned_omx = pd.read_csv('omx_30_data.csv')
+   cleaned_omx = pd.read_csv('../omx_30_data.csv')
 
 
    sequence_length = 240

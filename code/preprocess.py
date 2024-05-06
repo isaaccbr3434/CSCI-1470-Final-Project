@@ -75,7 +75,7 @@ def one_time_preprocess():
 
 def prepare_data1():
     
-    cleaned_omx = pd.read_csv('omx_30_data.csv')
+    cleaned_omx = pd.read_csv('../omx_30_data.csv')
 
     #Pg. 6 Constants
     sequence_length = 240
@@ -175,7 +175,7 @@ def prepare_data1():
     return x_train, y_train, x_val, y_val, x_test, y_test
 
 def prepare_data():
-    cleaned_omx = pd.read_csv('omx_30_data.csv')
+    cleaned_omx = pd.read_csv('../omx_30_data.csv')
     cleaned_omx = cleaned_omx.drop([0, 1, 2]) #Drop first 3 days to make it 4500 rows
     # print(cleaned_omx)
 
