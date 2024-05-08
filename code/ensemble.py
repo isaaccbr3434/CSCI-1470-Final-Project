@@ -7,12 +7,14 @@ import keras
 from keras import layers
 
 class MyLSTM(tf.keras.Model):
-    def __init__(self, hidden_size=3, weight_initializer="glorot_uniform"):
+    def __init__(self, weight_initializer, hidden_size=3):
         super().__init__()
         self.hidden_size = hidden_size
         if weight_initializer == "constant":
             weight_initializer = tf.keras.initializers.Constant(0.5)
-            
+
+        print("Model's initializer: ", weight_initializer)
+
         self.lstm_dense = tf.keras.Sequential([
             tf.keras.layers.LSTM(
                 units=3, # Should be able to not have to rely on hard code.
@@ -99,48 +101,49 @@ def main(args):
                            "orthogonal", "constant", "variance_scaling"] # FIX CONSTANT.
     
     models = []
-    for index, weight in enumerate(weight_initializers):
-        model = MyLSTM()
-        model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), 
-            loss='binary_crossentropy', 
-            metrics=['accuracy']
-        )
-        model.fit(
-            X_train, 
-            Y_train, 
-            epochs=epochs, 
-            batch_size=batch_size, 
-            validation_data=(X_val, Y_val), 
-            verbose=1
-        )
+    # for index, weight in enumerate(weight_initializers):
+    #     print(weight)
+    #     model = MyLSTM(weight)
+    #     model.compile(
+    #         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), 
+    #         loss='binary_crossentropy', 
+    #         metrics=['accuracy']
+    #     )
+    #     model.fit(
+    #         X_train, 
+    #         Y_train, 
+    #         epochs=epochs, 
+    #         batch_size=batch_size, 
+    #         validation_data=(X_val, Y_val), 
+    #         verbose=1
+    #     )
 
-       # -------------------Save the 11 models with initializer----------------
-        model_path = f'models/model_{index}_{weight}'
-        model.save(model_path, save_format='tf')
-        print(f'Model saved to {model_path}')
+    #    # -------------------Save the 11 models with initializer----------------
+    #     model_path = f'models/model_{index}_{weight}'
+    #     model.save(model_path, save_format='tf')
+    #     print(f'Model saved to {model_path}')
 
-        models.append(model)
+    #     models.append(model)
     
     # # ------------------------ Loading saved models ----------------------------
     for index, weight in enumerate(weight_initializers):
         model = load_model(f'models/model_{index}_{weight}')
         print(f'\nModel {weight} loaded from models/model_{index}_{weight}\n')
         models.append(model)
-
+    
+    #X_test: (2808, 240, 1)
     predictions = [(model.predict(X_test, batch_size=batch_size) > 0.5).astype("int32") for model in models] #(11, 2808, 1)
     predictions = np.array(predictions)
+    print(f"predictions shape: {predictions.shape}")
+
     mode_result = stats.mode(predictions, axis=0)
     mode_predictions = mode_result.mode.flatten() #(2808, )
-
-    # Get predictions from all 11 models across 2808 tests in X_tests
-    # predictions = np.concatenate([model.predict(X_test, batch_size=batch_size) for model in models], axis=1) #(2808, 11)
-    # mode_predictions = stats.mode(predictions, axis=1).mode.flatten() #(2808, )
+    print(mode_predictions)
     
     # Replaced bce with accuracy since all are whole numbers, and measure % accuracy.
     accuracy = tf.keras.metrics.BinaryAccuracy()
     accuracy.update_state(Y_test, mode_predictions)
-    print("Accuracy out of 2808 tests: ", accuracy.result().numpy()) #Always 0.50035614
+    print("Accuracy out of 2808 tests: ", accuracy.result().numpy())
 
 def parse_args():
     None 

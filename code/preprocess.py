@@ -75,7 +75,7 @@ def one_time_preprocess():
 
 def prepare_data1():
     
-    cleaned_omx = pd.read_csv('../omx_30_data.csv')
+    cleaned_omx = pd.read_csv('omx_30_data.csv')
 
     #Pg. 6 Constants
     sequence_length = 240
@@ -175,72 +175,6 @@ def prepare_data1():
     return x_train, y_train, x_val, y_val, x_test, y_test
 
 def prepare_data():
-    cleaned_omx = pd.read_csv('../omx_30_data.csv')
-    cleaned_omx = cleaned_omx.drop([0, 1, 2]) #Drop first 3 days to make it 4500 rows
-    # print(cleaned_omx)
-
-    #Pg. 6 Constants
-    SEQUENCE_LENGTH = 240
-    ROLLING_WINDOW = 30
-    TRAIN_LENGTH = 750
-    VALIDATION_LENGTH = 270
-    TEST_LENGTH = 270 #NEVER USED
-
-    # Initialize lists to store data
-    x_train, y_train = [], []
-    x_val, y_val = [], []
-    x_test, y_test = [], []
-
-    # For each of the (26) stocks
-    for ticker in omx30_tickers:
-        if ticker not in cleaned_omx.columns:
-            print(f"Ticker {ticker} not found in dataset. Skipping...")
-            continue
-
-        # Select the data for the current ticker
-        ticker_data = cleaned_omx[ticker]
-        targets = cleaned_omx[f"{ticker}_Target"]
-
-        for i in range(0, 3210 + 1, ROLLING_WINDOW):
-            # -----------------------Training processing------------------------
-            train_end = i + TRAIN_LENGTH
-            train_data = ticker_data[i : train_end]
-            train_targets = targets[i : train_end + 1].values
-
-            for j in range(0, len(train_data) - SEQUENCE_LENGTH + 1, ROLLING_WINDOW):
-                x_train.append(train_data.iloc[j:j+240].values)
-                y_train.append(train_targets[j+240])
-
-            # ----------------------Validation processing-----------------------
-            val_start = train_end
-            val_end = val_start + VALIDATION_LENGTH
-            val_data = ticker_data[val_start : val_end]
-            val_targets = targets[val_start : val_end + 1].values
-
-            for j in range(0, len(val_data) - SEQUENCE_LENGTH + 1, ROLLING_WINDOW):
-                x_val.append(val_data.iloc[j:j+240].values)
-                y_val.append(val_targets[j+240])
-
-            # -----------------------Testing processing-------------------------
-            test_start = val_end
-            test_end = test_start + SEQUENCE_LENGTH
-            
-            x_test.append(ticker_data[test_start : test_end].values)
-            y_test.append(targets[test_end])
-
-
-    # Convert lists to arrays
-    x_train = np.array(x_train).reshape(-1, SEQUENCE_LENGTH, 1)
-    y_train = np.array(y_train)
-    x_val = np.array(x_val).reshape(-1, SEQUENCE_LENGTH, 1)
-    y_val = np.array(y_val)
-    x_test = np.array(x_test).reshape(-1, SEQUENCE_LENGTH, 1)
-    y_test = np.array(y_test)
-
-    return x_train, y_train, x_val, y_val, x_test, y_test
-
-
-def prepare_data2():
     cleaned_omx = pd.read_csv('omx_30_data.csv')
     cleaned_omx = cleaned_omx.drop([0, 1, 2]) #Drop first 3 days to make it 4500 rows
     # print(cleaned_omx)
@@ -257,6 +191,8 @@ def prepare_data2():
     x_val, y_val = [], []
     x_test, y_test = [], []
 
+    all_target = []
+
     # For each of the (26) stocks
     for ticker in omx30_tickers:
         if ticker not in cleaned_omx.columns:
@@ -266,6 +202,8 @@ def prepare_data2():
         # Select the data for the current ticker
         ticker_data = cleaned_omx[ticker]
         targets = cleaned_omx[f"{ticker}_Target"]
+
+        all_target.extend(targets.values)
 
         for i in range(0, 3210 + 1, ROLLING_WINDOW):
             # -----------------------Training processing------------------------
@@ -294,6 +232,8 @@ def prepare_data2():
             x_test.append(ticker_data[test_start : test_end].values)
             y_test.append(targets[test_end])
 
+    print("Total number of daily stock data:", len(all_target), "days across 26 stocks")
+    print("Total number of days that stock went up:", all_target.count(1))
 
     # Convert lists to arrays
     x_train = np.array(x_train).reshape(-1, SEQUENCE_LENGTH, 1)
@@ -305,16 +245,31 @@ def prepare_data2():
 
     return x_train, y_train, x_val, y_val, x_test, y_test
 
+
 # one_time_preprocess()
-# x_train, y_train, x_val, y_val, x_test, y_test = prepare_data()
+
+x_train, y_train, x_val, y_val, x_test, y_test = prepare_data()
+
+# print(len(y_train))
+# print(np.sum(y_train==1))
+
+# print(len(y_val))
+# print(np.sum(y_val==1))
+
+# print(len(y_test))
+# print(np.sum(y_test==1))
+
+all_y = np.concatenate((y_train, np.concatenate((y_val, y_test), axis=0)), axis=0)
+print(len(all_y))
+print(np.sum(all_y==1))
 
 
-# print("x_train shape:", x_train.shape)
-# print("y_train shape:", y_train.shape)
-# print("x_val shape:", x_val.shape)
-# print("y_val shape:", y_val.shape)
-# print("x_test shape:", x_test.shape)
-# print("y_test shape:", y_test.shape)
+print("x_train shape:", x_train.shape)
+print("y_train shape:", y_train.shape)
+print("x_val shape:", x_val.shape)
+print("y_val shape:", y_val.shape)
+print("x_test shape:", x_test.shape)
+print("y_test shape:", y_test.shape)
 
 
 # print("x_train len:", len(x_train))
