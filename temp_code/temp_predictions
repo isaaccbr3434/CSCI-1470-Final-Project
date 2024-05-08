@@ -96,14 +96,18 @@ def loop_stocks(target_date):
 
     return map_predictions
 
-def accuracy_X_test():
+
+def accuracy_x_test():
     #Preprocessing necssary for X_test and Y_test
     print("Preprocessing Data...")
     preprocessing_time = time.time()
     X_train, Y_train, X_val, Y_val, X_test, Y_test = prepare_data()
     end_preprocessing_time = time.time()
     print(f"X_test's shape: {X_test.shape}") #(2782, 240, 1)
+    y_ups = sum(y == 1 for y in Y_test) 
+    print(f"Percentage of stock ups: {round(y_ups / Y_test.shape[0]*100,2)}%")
     print(f"Preprocessing Time: {end_preprocessing_time - preprocessing_time} seconds\n")
+
 
     #Get all predictions for every model
     predictions = [model.predict(X_test, batch_size=512) for model in models]
@@ -116,20 +120,39 @@ def accuracy_X_test():
     mode_predictions = mode_result.mode.flatten()
     print(f"{len(mode_predictions)} moded predictions\n") #2782 preidctions
 
+    #Understand false/true positives/negatives
+    x_ups = sum(x == 1 for x in mode_predictions) 
+    print(f"Percentage of stock ups predicted: {round(x_ups / len(mode_predictions)*100,2)}%")
+    y_ups = sum(y == 1 for y in Y_test) 
+    print(f"Percentage of stock ups actual: {round(y_ups / Y_test.shape[0]*100,2)}%\n")
+
+    true_positives = sum(x == y == 1 for x, y in zip(mode_predictions, Y_test))
+    false_positives = sum(x ==1 and y == 0 for x, y in zip(mode_predictions, Y_test))
+    true_negatives = sum(x == y == 0 for x, y in zip(mode_predictions, Y_test))
+    false_negatives = sum(x ==0 and y == 1 for x, y in zip(mode_predictions, Y_test))
+
+    print(f"Number of true positives: {true_positives}, {round(true_positives/len(mode_predictions)*100,4)}%")
+    print(f"Number of false positives: {false_positives}, {round(false_positives/len(mode_predictions)*100,4)}%")
+    print(f"Number of true negatives: {true_negatives}, {round(true_negatives/len(mode_predictions)*100,4)}%")
+    print(f"Number of false negatives: {false_negatives}, {round(false_negatives/len(mode_predictions)*100,4)}%\n")
+
     # Replaced bce with accuracy since all are whole numbers, and measure % accuracy.
     accuracy = tf.keras.metrics.BinaryAccuracy()
     accuracy.update_state(Y_test, mode_predictions)
     accuracy = accuracy.result().numpy() #32byte float
-    print(f"Accuracy of LSTM(X_test) to Y_test (2808 tests): {accuracy}%")
+    print(f"Accuracy of LSTM(X_test) to Y_test (2808 tests): {round(accuracy*100, 4)}%")
     return accuracy
 
 
 def main(args):
     main_time = time.time()
-    # -------------- Portfolio action based on model predictions ---------------
-    target_date = '2015-04-27'
-    map_decision = loop_stocks(target_date)
-    print(map_decision)
+    accuracy_x_test()
+
+    # # -------------- Portfolio action based on model predictions ---------------
+    # target_date = '2015-04-27'
+    # map_decision = loop_stocks(target_date)
+    # print(map_decision)
+
     end_main_time = time.time()
     print(f"Total Time of program: {end_main_time - main_time} seconds\n")
     return None

@@ -40,46 +40,46 @@ omx30_file_name = 'omx_30_data.csv'
 
 
 def one_time_preprocess():
-   #Only needs to be ran once!
+    #Only needs to be ran once!
 
-   #------------------------- Independent Variables ---------------------------
-   start_date = '2002-05-01'
-   end_date = '2020-02-01'
-   #---------------------------------------------------------------------------
-   global omx30_tickers
-   print(len(omx30_tickers), " stocks included in adjusted portfolio. Read comments for details ")
+    #------------------------- Independent Variables ---------------------------
+    start_date = '2002-05-01'
+    end_date = '2020-02-01'
+    #---------------------------------------------------------------------------
+    global omx30_tickers
+    print(len(omx30_tickers), " stocks included in adjusted portfolio. Read comments for details ")
 
-   stock_data = {}
-   for ticker in omx30_tickers:
-       try:
-           df = yf.download(tickers=ticker, start=start_date, end=end_date)
-           if df.empty:
-               print(f"No data found for ticker: {ticker}. Skipping...")
-               continue
-           stock_data[ticker] = df['Close'].pct_change()
-       except Exception as e:
-           print(f"Error retrieving data for ticker {ticker}: {str(e)}")
-           continue
-
-
-   omx30_df = pd.DataFrame(stock_data)
-   median_return = omx30_df.median(axis=1)
-   omx30_df['Median_Return'] = median_return
+    stock_data = {}
+    for ticker in omx30_tickers:
+        try:
+            df = yf.download(tickers=ticker, start=start_date, end=end_date)
+            if df.empty:
+                print(f"No data found for ticker: {ticker}. Skipping...")
+                continue
+            stock_data[ticker] = df['Close'].pct_change()
+        except Exception as e:
+            print(f"Error retrieving data for ticker {ticker}: {str(e)}")
+            continue
 
 
-   #This stock had no data
-#    omx30_df.drop(columns=['ESSITY-A.ST'], inplace=True)
-#    omx30_tickers.remove('ESSITY-A.ST')
+    omx30_df = pd.DataFrame(stock_data)
+    median_return = omx30_df.median(axis=1)
+    omx30_df['Median_Return'] = median_return
 
 
-   for ticker in omx30_tickers:
-       if ticker not in omx30_df.columns:
-           print(f"No data found for ticker: {ticker}. Skipping...")
-           continue
-       omx30_df[f"{ticker}_Target"] = (omx30_df[ticker] > median_return).astype(int)
+    #This stock had no data
+    #    omx30_df.drop(columns=['ESSITY-A.ST'], inplace=True)
+    #    omx30_tickers.remove('ESSITY-A.ST')
 
-   omx30_df.to_csv(omx30_file_name)
-   print(omx30_df.head())
+
+    for ticker in omx30_tickers:
+        if ticker not in omx30_df.columns:
+            print(f"No data found for ticker: {ticker}. Skipping...")
+            continue
+        omx30_df[f"{ticker}_Target"] = (omx30_df[ticker] > median_return).astype(int)
+
+    omx30_df.to_csv(omx30_file_name)
+    print(omx30_df.head())
 
 
 def prepare_data():
@@ -162,33 +162,33 @@ def prepare_data():
    return x_train, y_train, x_val, y_val, x_test, y_test
 
 # one_time_preprocess()
-x_train, y_train, x_val, y_val, x_test, y_test = prepare_data()
+# x_train, y_train, x_val, y_val, x_test, y_test = prepare_data()
 
 
-print("x_train shape:", x_train.shape)
-print("y_train shape:", y_train.shape)
-print("x_val shape:", x_val.shape)
-print("y_val shape:", y_val.shape)
-print("x_test shape:", x_test.shape)
-print("y_test shape:", y_test.shape)
+# print("x_train shape:", x_train.shape)
+# print("y_train shape:", y_train.shape)
+# print("x_val shape:", x_val.shape)
+# print("y_val shape:", y_val.shape)
+# print("x_test shape:", x_test.shape)
+# print("y_test shape:", y_test.shape)
 
 
-print("x_train len:", len(x_train))
-print("y_train len:", len(y_train))
-print("x_val len:", len(x_val))
-print("y_val len:", len(y_val))
-print("x_test len:", len(x_test))
-print("y_test len:", len(y_test))
+# print("x_train len:", len(x_train))
+# print("y_train len:", len(y_train))
+# print("x_val len:", len(x_val))
+# print("y_val len:", len(y_val))
+# print("x_test len:", len(x_test))
+# print("y_test len:", len(y_test))
 
 
-num_samples = 5
-for i in range(num_samples):
-    plt.figure(figsize=(10, 6))
-    plt.plot(x_train[i], label='Sequence')
-    plt.axhline(y=y_train[i], color='r', linestyle='--', label='Target')
-    plt.title(f"Sample Sequence {i+1} (Target: {y_train[i]})")
-    plt.xlabel("Days")
-    plt.ylabel("Rate of Return")
-    plt.legend()
-    plt.show()
+# num_samples = 5
+# for i in range(num_samples):
+#     plt.figure(figsize=(10, 6))
+#     plt.plot(x_train[i], label='Sequence')
+#     plt.axhline(y=y_train[i], color='r', linestyle='--', label='Target')
+#     plt.title(f"Sample Sequence {i+1} (Target: {y_train[i]})")
+#     plt.xlabel("Days")
+#     plt.ylabel("Rate of Return")
+#     plt.legend()
+#     plt.show()
 
