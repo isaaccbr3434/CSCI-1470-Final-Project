@@ -6,6 +6,8 @@ from temp_preprocess import prepare_data
 from tensorflow.keras.models import load_model
 import os
 
+#################### DON'T RUN FILE IF temp_models EXIST!!!#####################
+
 model_folder = 'temp_models/'
 
 class MyLSTM(tf.keras.Model):
@@ -37,6 +39,7 @@ class MyLSTM(tf.keras.Model):
         return output
     
 def main(args):
+    return None
     start_time = time.time()
 
     # Prepare training and testing data.
@@ -97,5 +100,7 @@ def main(args):
     seconds = int(elapsed_time_seconds % 60)
 
     print(f"Elapsed time to train 11 models: {hours} hours, {minutes} minutes, {seconds} seconds")
+
 if __name__ == '__main__':
-    main(parse_args())
+    None
+    # main(parse_args())

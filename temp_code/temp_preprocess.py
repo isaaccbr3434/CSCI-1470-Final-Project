@@ -5,7 +5,6 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 
-
 omx30_tickers = ['HM-B.ST', 'ERIC-B.ST', 'SEB-A.ST', 'SWED-A.ST', 'VOLV-B.ST', 
     'TELIA.ST', 'SHB-A.ST', 'ATCO-A.ST', 'SKA-B.ST', 'INVE-B.ST', 
     'ELUX-B.ST', 'ASSA-B.ST', 'SCA-B.ST', 'INDU-C.ST', 'AZN.ST', 
