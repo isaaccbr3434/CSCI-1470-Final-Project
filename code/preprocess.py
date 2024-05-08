@@ -1,5 +1,6 @@
 import pandas as pd
 import yfinance as yf
+import tensorflow as tf
 from datetime import datetime
 import numpy as np
 import math
@@ -91,7 +92,6 @@ def prepare_data1():
     x_test, y_test = [], []
 
     cleaned_omx = cleaned_omx.drop([0, 1, 2]) #Drop first 3 days to make it 4500 rows
-    print(cleaned_omx)
 
     # Kevin Edits: Currently overcounts training data. There should be (4500-1290)/30 = 107 training blocks
     # (0, 3960) is used for training with 270 sized windows (4500-540)
@@ -191,6 +191,67 @@ def prepare_data():
     x_val, y_val = [], []
     x_test, y_test = [], []
 
+    # For each of the (26) stocks
+    for ticker in omx30_tickers:
+        if ticker not in cleaned_omx.columns:
+            print(f"Ticker {ticker} not found in dataset. Skipping...")
+            continue
+
+        # Select the data for the current ticker
+        ticker_data = cleaned_omx[ticker]
+        targets = cleaned_omx[f"{ticker}_Target"]
+
+        for i in range(0, 3210 + 1, ROLLING_WINDOW):
+            # -----------------------Training processing------------------------
+            train_end = i + TRAIN_LENGTH
+            train_data = ticker_data[i : train_end]
+            train_targets = targets[i : train_end + 1].values
+
+            for j in range(0, len(train_data) - SEQUENCE_LENGTH + 1, ROLLING_WINDOW):
+                x_train.append(train_data.iloc[j:j+240].values)
+                y_train.append(train_targets[j+240])
+
+            # ----------------------Validation processing-----------------------
+            val_start = train_end
+            val_end = val_start + VALIDATION_LENGTH
+            val_data = ticker_data[val_start : val_end]
+            val_targets = targets[val_start : val_end + 1].values
+
+            for j in range(0, len(val_data) - SEQUENCE_LENGTH + 1, ROLLING_WINDOW):
+                x_val.append(val_data.iloc[j:j+240].values)
+                y_val.append(val_targets[j+240])
+
+            # -----------------------Testing processing-------------------------
+            test_start = val_end
+            test_end = test_start + SEQUENCE_LENGTH
+            
+            x_test.append(ticker_data[test_start : test_end].values)
+            y_test.append(targets[test_end])
+
+
+    # Convert lists to arrays
+    x_train = np.array(x_train).reshape(-1, SEQUENCE_LENGTH, 1)
+    y_train = np.array(y_train)
+    x_val = np.array(x_val).reshape(-1, SEQUENCE_LENGTH, 1)
+    y_val = np.array(y_val)
+    x_test = np.array(x_test).reshape(-1, SEQUENCE_LENGTH, 1)
+    y_test = np.array(y_test)
+
+    return x_train, y_train, x_val, y_val, x_test, y_test
+
+
+def prepare_data2():
+    SEQUENCE_LENGTH = 240
+    ROLLING_WINDOW = 30
+    TRAIN_LENGTH = 750
+    VALIDATION_LENGTH = 270
+    TEST_LENGTH = 270 #NEVER USED
+
+    # Initialize lists to store data
+    x_train, y_train = [], []
+    x_val, y_val = [], []
+    x_test, y_test = [], []
+
     all_target = []
 
     # For each of the (26) stocks
@@ -243,6 +304,17 @@ def prepare_data():
     x_test = np.array(x_test).reshape(-1, SEQUENCE_LENGTH, 1)
     y_test = np.array(y_test)
 
+    y_data = np.genfromtxt('omx_30_data.csv', skip_header = 4, delimiter = ',', usecols = [i for i in range(28, 54)])
+    # with open('test.txt', 'w') as f:
+    #     print(data, file = f)
+    x_train = x_data[0:TRAIN_LENGTH]
+    y_train = y_data[0:TRAIN_LENGTH]
+    val_start = TRAIN_LENGTH
+    x_val = x_data[val_start:val_start+VALIDATION_LENGTH]
+    y_val = y_data[val_start:val_start+VALIDATION_LENGTH] 
+    test_start = val_start + VALIDATION_LENGTH
+    x_test = x_data[test_start:test_start + SEQUENCE_LENGTH]
+    y_test = y_data[test_start:test_start + SEQUENCE_LENGTH]
     return x_train, y_train, x_val, y_val, x_test, y_test
 
 
@@ -278,3 +350,7 @@ print("y_test shape:", y_test.shape)
 # print("y_val len:", len(y_val))
 # print("x_test len:", len(x_test))
 # print("y_test len:", len(y_test))
+
+# with open('test.txt', 'w') as f:
+#     print(x_test, file = f)
+#     print(y_test, file = f)
