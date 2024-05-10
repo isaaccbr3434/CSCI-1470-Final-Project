@@ -8,14 +8,14 @@ import os
 
 #################### DON'T RUN FILE IF temp_models EXIST!!!#####################
 
-model_folder = 'temp_models/'
+model_folder = 'temp_models_mac/'
 
 class MyLSTM(tf.keras.Model):
     def __init__(self, weight_initializer, hidden_size=3):
         super().__init__()
         self.hidden_size = hidden_size
         if weight_initializer == "constant":
-            weight_initializer = tf.keras.initializers.Constant(0.5)
+            weight_initializer = tf.keras.initializers.Constant(0.05)
 
         print("Model weight: ", weight_initializer)
 

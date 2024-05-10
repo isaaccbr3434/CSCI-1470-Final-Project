@@ -164,11 +164,11 @@ def prepare_data():
 # x_train, y_train, x_val, y_val, x_test, y_test = prepare_data()
 
 
-# print("x_train shape:", x_train.shape)
+# print("x_train shape:", x_train.shape) #(1418820, 240, 1)
 # print("y_train shape:", y_train.shape)
-# print("x_val shape:", x_val.shape)
+# print("x_val shape:", x_val.shape) #(83460, 240, 1)
 # print("y_val shape:", y_val.shape)
-# print("x_test shape:", x_test.shape)
+# print("x_test shape:", x_test.shape) #(2782, 240, 1)
 # print("y_test shape:", y_test.shape)
 
 

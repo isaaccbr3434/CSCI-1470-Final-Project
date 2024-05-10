@@ -110,7 +110,7 @@ def accuracy_x_test():
 
 
     #Get all predictions for every model
-    predictions = [model.predict(X_test, batch_size=512) for model in models]
+    predictions = [model.predict(X_test, batch_size=64) for model in models]
     predictions = np.array(predictions)
     print(f"predictions shape: {predictions.shape}") #(11, 2782, 1)
 
@@ -144,6 +144,96 @@ def accuracy_x_test():
     return accuracy
 
 
+#This takes around 40 minutes to get 2 ~(192, 26, 11) prediction & label numpys
+def plot_accuracies():
+    all_predictions = []
+    all_performances = []
+    for year in range(2004, 2020):
+        for month in range(1, 13):
+            date = ''
+            if (month < 10):
+                date = f"{year}-0{month}-01"
+            else:
+                date = f"{year}-{month}-01"
+            print(date)
+
+            start_time = time.time()
+
+            stock_predictions = []
+            stock_performances = []
+
+            for ticker_symbol in omx30_tickers:
+                print(ticker_symbol)
+                cleaned_omx = pd.read_csv(omx30_file_name)
+
+                #--------------------Get window of training data ---------------
+                cleaned_omx['Date'] = pd.to_datetime(cleaned_omx['Date'])
+
+                # Set the 'Date' column as the index
+                cleaned_omx.set_index('Date', inplace=True)
+
+                #TRY CATCH cause trading days don't always start on the 1st
+                try:
+                    date_index = cleaned_omx.index.get_loc(pd.to_datetime(date))
+                except KeyError:
+                    print(f"{month}-01 is not a trading day. trying 02")
+                    date = date[:-1] + str(int(date[-1]) + 1)
+                    try:
+                        date_index = cleaned_omx.index.get_loc(date)
+                    except KeyError:
+                        print(f"{month}-02 is not a trading day either. trying 03")
+                        date = date[:-1] + str(int(date[-1]) + 1)
+                        try:
+                            date_index = cleaned_omx.index.get_loc(date)
+                        except KeyError:
+                            print(f"{month}-03 is not a trading day either. trying 04 (only May 2009)")
+                            date = date[:-1] + str(int(date[-1]) + 1)
+                            date_index = cleaned_omx.index.get_loc(date)
+
+                sequence_length = 240
+                i_test = 0
+                i_indexer = date_index-239
+
+                x_test = []
+                while i_test + sequence_length <= sequence_length:
+                    sequence = cleaned_omx.iloc[i_indexer:i_indexer + sequence_length][ticker_symbol]
+                    # print(sequence.values)
+                    x_test.append(sequence.values)
+                    i_test += 1
+                x_window = np.array(x_test).reshape(1, sequence_length, 1)
+                # print(x_window.shape) #(1, 240, 1)
+
+                #---------------Get prediction off of training data ------------
+                predictions = [model.predict(x_window, batch_size=256) for model in models]
+                predictions = np.array(predictions) #Originally shaped (11, 1, 1)
+                binary_predictions = (predictions > 0.5).astype(int)
+                binary_predictions_model = binary_predictions.reshape(11,)
+                print(binary_predictions_model)
+                # print(f"Mode prediction for stock {ticker_symbol}: {mode_predictions}")
+                stock_predictions.append(binary_predictions_model)
+
+                #-----------------------Get the actual performance------------------
+                targets = cleaned_omx[f"{ticker_symbol}_Target"]
+                target = targets.iloc[date_index]
+                print(target)
+                stock_performances.append(target)
+
+            end_time = time.time()
+            print(f"Took {end_time - start_time} seconds to get prediction over 30 models for {month}, {year} of 192 data points\n")
+        all_performances.append(stock_performances)
+        all_predictions.append(stock_predictions)
+
+    all_predictions = np.array(all_predictions)
+    all_performances = np.array(all_performances)
+    
+    np.save("my_all_predictions.npy", all_predictions)
+    np.save("my_all_performances.npy", all_performances)
+
+    print(f"All predictions shape: {all_predictions.shape}")
+    print(f"All performances shape: {all_performances.shape}")
+
+            
+
 def main(args):
     # main_time = time.time()
     # accuracy_x_test()
@@ -153,6 +243,7 @@ def main(args):
     map_decision = loop_stocks(target_date)
     print(map_decision)
 
+    # plot_accuracies()
     # end_main_time = time.time()
     # print(f"Total Time of program: {end_main_time - main_time} seconds\n")
     return None

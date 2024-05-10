@@ -331,17 +331,17 @@ x_train, y_train, x_val, y_val, x_test, y_test = prepare_data()
 # print(len(y_test))
 # print(np.sum(y_test==1))
 
-all_y = np.concatenate((y_train, np.concatenate((y_val, y_test), axis=0)), axis=0)
-print(len(all_y))
-print(np.sum(all_y==1))
+# all_y = np.concatenate((y_train, np.concatenate((y_val, y_test), axis=0)), axis=0)
+# print(len(all_y))
+# print(np.sum(all_y==1))
 
 
-print("x_train shape:", x_train.shape)
-print("y_train shape:", y_train.shape)
-print("x_val shape:", x_val.shape)
-print("y_val shape:", y_val.shape)
-print("x_test shape:", x_test.shape)
-print("y_test shape:", y_test.shape)
+# print("x_train shape:", x_train.shape) #(50544, 240, 1)
+# print("y_train shape:", y_train.shape)
+# print("x_val shape:", x_val.shape) #(5616, 240, 1)
+# print("y_val shape:", y_val.shape)
+# print("x_test shape:", x_test.shape) #(2808, 240, 1)
+# print("y_test shape:", y_test.shape)
 
 
 # print("x_train len:", len(x_train))
