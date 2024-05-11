@@ -238,12 +238,12 @@ def main(args):
     # main_time = time.time()
     # accuracy_x_test()
 
-    # -------------- Portfolio action based on model predictions ---------------
-    target_date = '2015-01-29'
-    map_decision = loop_stocks(target_date)
-    print(map_decision)
+    # # -------------- Portfolio action based on model predictions ---------------
+    # target_date = '2015-01-29'
+    # map_decision = loop_stocks(target_date)
+    # print(map_decision)
 
-    # plot_accuracies()
+    plot_accuracies()
     # end_main_time = time.time()
     # print(f"Total Time of program: {end_main_time - main_time} seconds\n")
     return None
