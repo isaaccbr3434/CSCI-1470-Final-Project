@@ -3,18 +3,18 @@ import time
 import tensorflow as tf
 from scipy import stats
 from temp_preprocess import prepare_data, omx30_tickers, omx30_file_name
-from temp_model_train import model_folder
+from temp_model_train import model_folder, weight_initializers
 from tensorflow.keras.models import load_model
 import os
 import pandas as pd
+import matplotlib.pyplot as plt
 
+
+accuracy_plot_folder = "accuracy_plots/"
 # ------------------------ Loading saved models ----------------------------
 # Not a global because 
 model_time = time.time()
 models = []
-weight_initializers = ["random_normal", "random_uniform", "truncated_normal", "zeros", 
-                        "ones", "glorot_normal", "glorot_uniform", "identity",
-                        "orthogonal", "constant", "variance_scaling"]
 print("Loading models...")
 os.makedirs(model_folder, exist_ok=True)
 for index, weight in enumerate(weight_initializers):
@@ -141,14 +141,44 @@ def accuracy_x_test():
     accuracy.update_state(Y_test, mode_predictions)
     accuracy = accuracy.result().numpy() #32byte float
     print(f"Accuracy of LSTM(X_test) to Y_test (2808 tests): {round(accuracy*100, 4)}%")
+
+    # -------------------- Plot Y_test accuracy with 240 window ----------------
+    Y_test_accuracies = []
+    for j in range(240, 2782+1): #2543 data points
+        window_predictions = mode_predictions[j-240:j]
+        window_performances = Y_test[j-240:j]
+
+        t_accuracy = tf.keras.metrics.BinaryAccuracy()
+        t_accuracy.update_state(window_performances, window_predictions)
+        t_accuracy = t_accuracy.result().numpy() #32byte float
+
+        Y_test_accuracies.append(t_accuracy)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(240, 2782+1), Y_test_accuracies, label=f"Y_test Accuracies")
+    plt.ylim(0.25, 0.75)
+    # plt.plot(model_accuracies, label='Sequence')
+    plt.title(f"Accuracy of Y_test across 2543 windows")
+    plt.xlabel("Time")
+    plt.ylabel(f"Y_test Accuracy")
+    plt.legend()
+
+    os.makedirs(accuracy_plot_folder, exist_ok=True)
+    plt.savefig(f"{accuracy_plot_folder}y_test_accuracy_plot.png")
+    plt.show()
+
     return accuracy
 
 
 #This takes around 40 minutes to get 2 ~(192, 26, 11) prediction & label numpys
-def plot_accuracies():
+def setup_accuracies():
     all_predictions = []
     all_performances = []
+    
     for year in range(2004, 2020):
+        stock_predictions = []
+        stock_performances = []
+
         for month in range(1, 13):
             date = ''
             if (month < 10):
@@ -158,9 +188,6 @@ def plot_accuracies():
             print(date)
 
             start_time = time.time()
-
-            stock_predictions = []
-            stock_performances = []
 
             for ticker_symbol in omx30_tickers:
                 print(ticker_symbol)
@@ -220,8 +247,9 @@ def plot_accuracies():
 
             end_time = time.time()
             print(f"Took {end_time - start_time} seconds to get prediction over 30 models for {month}, {year} of 192 data points\n")
-        all_performances.append(stock_performances)
+
         all_predictions.append(stock_predictions)
+        all_performances.append(stock_performances)
 
     all_predictions = np.array(all_predictions)
     all_performances = np.array(all_performances)
@@ -232,18 +260,96 @@ def plot_accuracies():
     print(f"All predictions shape: {all_predictions.shape}")
     print(f"All performances shape: {all_performances.shape}")
 
-            
 
+def plot_accuracies():
+    all_predictions = np.load("my_all_predictions.npy")
+    all_predictions = all_predictions.reshape(16, 12, 26, 11).reshape(192, 26, 11)
+
+    all_performances = np.load("my_all_performances.npy")
+    all_performances = all_performances.reshape(16, 12, 26).reshape(192, 26)
+    all_performances = np.expand_dims(all_performances, axis=-1)
+    all_performances = np.repeat(all_performances, repeats=11, axis=2)
+
+    print(f"All predictions new shape: {all_predictions.shape}") #(192, 26, 11)
+    print(f"All performances new shape: {all_performances.shape}") #(192, 26, 11)
+
+    #The shape stands for 192 months, for 26 stocks of predictions (per month), 11 models, of binary predictions on whether the stock is going up or down then ext day
+    for i, model in enumerate(weight_initializers):
+        model_predictions = all_predictions[:, :, i]
+        model_performances = all_performances[:, :, i]
+        print(f"Model {i+1}:")
+
+        model_accuracies = []
+        #8 month window with step 1 for plotting accuracy over 192 months
+        for j in range(8, 192+1): ##Expecting a total of 185 data points per model
+            window_predictions = model_predictions[j-8:j].flatten() #(8, 26)
+            window_performances = model_performances[j-8:j].flatten() #(8, 26)
+
+            accuracy = tf.keras.metrics.BinaryAccuracy()
+            accuracy.update_state(window_performances, window_predictions)
+            accuracy = accuracy.result().numpy() #32byte float
+
+            model_accuracies.append(accuracy)
+
+        print(f"Model {model} accuracies: {model_accuracies}") #185 data points
+        # Plotting model accuracies
+        plt.figure(figsize=(10, 6))
+        plt.plot(range(8, 193), model_accuracies, label=f"Model {i+1} Accuracies")
+        plt.ylim(0.25, 0.75)
+        # plt.plot(model_accuracies, label='Sequence')
+        plt.title(f"Accuracy of Model {model} across time")
+        plt.xlabel("Time")
+        plt.ylabel(f"Model {model} Accuracy")
+        plt.legend()
+
+        os.makedirs(accuracy_plot_folder, exist_ok=True)
+        plt.savefig(f"{accuracy_plot_folder}model_{model}_accuracy_plot.png")
+        plt.show()
+    
+
+    all_accuracies = []
+    #8 month window with step 1 for plotting accuracy over 192 months
+    for j in range(8, 192+1): ##Expecting a total of 185 data points per model
+        window_predictions = all_predictions[j-8:j].flatten() #(8*26*11)
+        window_performances = all_performances[j-8:j].flatten() #(8*26*11)
+
+        accuracy = tf.keras.metrics.BinaryAccuracy()
+        accuracy.update_state(window_performances, window_predictions)
+        accuracy = accuracy.result().numpy() #32byte float
+
+        all_accuracies.append(accuracy)
+    print(f"All accuracies: {all_accuracies}") #185 data points
+    # Plotting model accuracies
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(8, 193), all_accuracies, label=f"All Model Accuracies")
+    plt.ylim(0.25, 0.75)
+    # plt.plot(model_accuracies, label='Sequence')
+    plt.title(f"Accuracy of all models across time")
+    plt.xlabel("Time")
+    plt.ylabel(f"All Model Accuracy")
+    plt.legend()
+
+    os.makedirs(accuracy_plot_folder, exist_ok=True)
+    plt.savefig(f"{accuracy_plot_folder}all_model_accuracy_plot.png")
+    plt.show()
+
+    # Replaced bce with accuracy since all are whole numbers, and measure % accuracy.
+    accuracy = tf.keras.metrics.BinaryAccuracy()
+    accuracy.update_state(all_performances.flatten(), all_predictions.flatten())
+    accuracy = accuracy.result().numpy() #32byte float
+    print(f"Accuracy of all_predictions to all_performances (192, 26, 11): {round(accuracy*100, 4)}%")
+            
 def main(args):
     # main_time = time.time()
-    # accuracy_x_test()
+    accuracy_x_test()
 
     # # -------------- Portfolio action based on model predictions ---------------
     # target_date = '2015-01-29'
     # map_decision = loop_stocks(target_date)
     # print(map_decision)
 
-    plot_accuracies()
+    # setup_accuracies()
+    # plot_accuracies()
     # end_main_time = time.time()
     # print(f"Total Time of program: {end_main_time - main_time} seconds\n")
     return None

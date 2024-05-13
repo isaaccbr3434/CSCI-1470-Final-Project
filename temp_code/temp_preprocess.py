@@ -169,7 +169,7 @@ def prepare_data():
 # print("x_val shape:", x_val.shape) #(83460, 240, 1)
 # print("y_val shape:", y_val.shape)
 # print("x_test shape:", x_test.shape) #(2782, 240, 1)
-# print("y_test shape:", y_test.shape)
+# print("y_test shape:", y_test.shape) #(2782, 1)
 
 
 # print("x_train len:", len(x_train))

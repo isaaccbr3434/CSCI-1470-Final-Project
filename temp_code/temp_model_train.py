@@ -10,6 +10,10 @@ import os
 
 model_folder = 'temp_models_mac/'
 
+# Instantiate models.
+weight_initializers = ["random_normal", "random_uniform", "truncated_normal", "zeros", 
+                        "ones", "glorot_normal", "glorot_uniform", "identity",
+                        "orthogonal", "constant", "variance_scaling"] # FIX CONSTANT.
 class MyLSTM(tf.keras.Model):
     def __init__(self, weight_initializer, hidden_size=3):
         super().__init__()
@@ -53,11 +57,6 @@ def main(args):
     learning_rate = 0.0075
     epochs = 10
     batch_size = 6800
-
-    # Instantiate models.
-    weight_initializers = ["random_normal", "random_uniform", "truncated_normal", "zeros", 
-                           "ones", "glorot_normal", "glorot_uniform", "identity",
-                           "orthogonal", "constant", "variance_scaling"] # FIX CONSTANT.
     
     models = []
     for index, weight in enumerate(weight_initializers):
